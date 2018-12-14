@@ -1,6 +1,21 @@
 const TEXT_ELEMENT = 'TEXT ELEMENT';
 
 /**
+ * @typedef DidactElement
+ * @type {object}
+ * @property {*} type
+ * @property {object} props
+ */
+
+/**
+ * @typedef DidactInstance
+ * @type {object}
+ * @property {HTMLElement} dom
+ * @property {DidactElement} element
+ * @property {DidactInstance[]} childInstances
+ */
+
+/**
  * @param {object} props 
  * @param {HTMLElement} dom 
  */
@@ -17,11 +32,38 @@ function addProps(props, dom) {
     }
 }
 
+let rootInstance = null;
+
 /**
- * @param {{ type, props: object }} element 
- * @param {HTMLElement} parentDom 
+ * @param {DidactElement} element 
+ * @param {HTMLElement} container 
  */
-function render(element, parentDom) {
+function render(element, container) {
+    rootInstance = reconcile(container, rootInstance, element);
+}
+
+/**
+ * @param {HTMLElement} parentDom 
+ * @param {DidactInstance=} prevInstance 
+ * @param {DidactElement} element 
+ * @returns {DidactInstance}
+ */
+function reconcile(parentDom, prevInstance, element) {
+    const newInstance = instantiate(element);
+    if (prevInstance === null) {
+        parentDom.appendChild(newInstance.dom);
+    } else {
+        parentDom.replaceChild(newInstance.dom, prevInstance.dom);
+    }
+
+    return newInstance;
+}
+
+/**
+ * @param {DidactElement} element 
+ * @returns {DidactInstance}
+ */
+function instantiate(element) {
     const { type, props } = element;
     const { children, ...rest } = props;
 
@@ -30,9 +72,10 @@ function render(element, parentDom) {
         : document.createElement(type);
     
     addProps(rest, dom);
-    const childElements = (children || []).forEach(child => render(child, dom));
+    const childInstances = (children || []).map(instantiate);
+    childInstances.forEach(({ dom: childDom }) => dom.appendChild(childDom));
 
-    parentDom.appendChild(dom);
+    return { dom, element, childInstances };
 }
 
 function createTextElement(value) {
