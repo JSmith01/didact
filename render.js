@@ -16,17 +16,29 @@ const TEXT_ELEMENT = 'TEXT ELEMENT';
  */
 
 /**
- * @param {object} props 
- * @param {HTMLElement} dom 
+ * @param {HTMLElement} dom
+ * @param {object} prevProps
+ * @param {object} nextProps
  */
-function addProps(props, dom) {
-    for (const propName in props) {
-        if (props.hasOwnProperty(propName)) {
+function updateDomProps(dom, prevProps, nextProps) {
+    for (const propName in prevProps) {
+        if (prevProps.hasOwnProperty(propName) && prevProps[propName] !== nextProps[propName]) {
             if (propName.startsWith('on')) {
                 const eventType = propName.toLowerCase().substring(2);
-                dom.addEventListener(eventType, props[propName]);
+                dom.removeEventListener(eventType, prevProps[propName]);
             } else {
-                dom[propName] = props[propName];
+                dom[propName] = null;
+            }
+        }
+    }
+
+    for (const propName in nextProps) {
+        if (nextProps.hasOwnProperty(propName) && prevProps[propName] !== nextProps[propName]) {
+            if (propName.startsWith('on')) {
+                const eventType = propName.toLowerCase().substring(2);
+                dom.addEventListener(eventType, nextProps[propName]);
+            } else {
+                dom[propName] = nextProps[propName];
             }
         }
     }
@@ -65,13 +77,13 @@ function reconcile(parentDom, prevInstance, element) {
  */
 function instantiate(element) {
     const { type, props } = element;
-    const { children, ...rest } = props;
+    const { children, ...domProps } = props;
 
     const dom = type === TEXT_ELEMENT 
         ? document.createTextNode('') 
         : document.createElement(type);
     
-    addProps(rest, dom);
+    updateDomProps(dom, {}, domProps);
     const childInstances = (children || []).map(instantiate);
     childInstances.forEach(({ dom: childDom }) => dom.appendChild(childDom));
 
