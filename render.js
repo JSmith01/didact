@@ -56,19 +56,52 @@ function render(element, container) {
 
 /**
  * @param {HTMLElement} parentDom 
- * @param {DidactInstance=} prevInstance 
+ * @param {DidactInstance=} instance 
  * @param {DidactElement} element 
  * @returns {DidactInstance}
  */
-function reconcile(parentDom, prevInstance, element) {
-    const newInstance = instantiate(element);
-    if (prevInstance === null) {
+function reconcile(parentDom, instance, element) {
+    if (instance == null) {
+        const newInstance = instantiate(element);
         parentDom.appendChild(newInstance.dom);
-    } else {
-        parentDom.replaceChild(newInstance.dom, prevInstance.dom);
+        return newInstance;
+    }
+    
+    if (element == null) {
+        parentDom.removeChild(instance.dom);
+        return null;
     }
 
-    return newInstance;
+    if (instance.element.type === element.type) {
+        updateDomProps(instance.dom, instance.element.props, element.props);
+        instance.childInstances = reconcileChildren(instance, element);
+        instance.element = element;
+        return instance;
+    } else {
+        const newInstance = instantiate(element);
+        parentDom.replaceChild(newInstance.dom, instance.dom);
+        return newInstance;
+    }
+}
+
+/**
+ * @param {DidactInstance} instance 
+ * @param {DidactElement} children
+ * @returns {DidactInstance[]}
+ */
+function reconcileChildren(instance, children) {
+    const { dom, childInstances } = instance;
+    const nextChildElements = element.props.children || [];
+    const newChildInstances = [];
+    const count = Math.max(childInstances.length, nextChildElements.length);
+    for (let i = 0; i < count; i++) {
+        const childInstance = childInstances[i];
+        const childElement = nextChildElements[i];
+        const newChildInstance = reconcile(dom, childInstance, childElement);
+        newChildInstances.push(newChildInstance);
+    }
+
+    return newChildInstances.filter(instance => instance != null);
 }
 
 /**
@@ -90,10 +123,22 @@ function instantiate(element) {
     return { dom, element, childInstances };
 }
 
+/**
+ * 
+ * @param {string} value 
+ * @returns {DidactElement}
+ */
 function createTextElement(value) {
     return createElement(TEXT_ELEMENT, { nodeValue: value });
 }
 
+/**
+ * 
+ * @param {string} type 
+ * @param {object} config 
+ * @param  {...any} children
+ * @returns {DidactElement} 
+ */
 function createElement(type, config, ...args) {
     const children = args
         .filter(c => c != null && c !== false)
