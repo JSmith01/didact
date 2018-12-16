@@ -75,6 +75,7 @@ function reconcile(parentDom, instance, element) {
     }
 
     if (element == null) {
+        checkAndTriageCWU(instance);
         parentDom.removeChild(instance.dom);
         return null;
     }
@@ -85,24 +86,54 @@ function reconcile(parentDom, instance, element) {
             instance.childInstances = reconcileChildren(instance, element);
             instance.element = element;
         } else {
-            instance.publicInstance.props = element.props;
-            const childElement = instance.publicInstance.render();
-            const childInstance = reconcile(
-                parentDom,
-                (instance.childInstances || {})[0],
-                childElement
-            );
-            instance.dom = childInstance.dom;
-            instance.childInstances = [childInstance];
-            instance.element = element;
+            reconcileComponentInstance(parentDom, instance, element);
         }
 
         return instance;
     } else {
         const newInstance = instantiate(element);
+        checkAndTriageCWU(instance);
         parentDom.replaceChild(newInstance.dom, instance.dom);
         return newInstance;
     }
+}
+
+/**
+ * @param {DidactInstance} instance
+ */
+function checkAndTriageCWU(instance) {
+    if (instance.element.type !== 'string' && instance.publicInstance) {
+        if (
+            typeof instance.publicInstance.componentWillUnmount === 'function'
+        ) {
+            instance.publicInstance.componentWillUnmount();
+        }
+    }
+
+    if (instance.childInstances && instance.childInstances.length > 0) {
+        instance.childInstances.forEach(checkAndTriageCWU);
+    }
+}
+
+/**
+ * @param {HTMLElement} parentDom
+ * @param {DidactInstance=} instance
+ * @param {DidactElement} element
+ * @returns {DidactInstance}
+ */
+function reconcileComponentInstance(parentDom, instance, element) {
+    instance.publicInstance.props = element.props;
+    const childElement = instance.publicInstance.render();
+    const childInstance = reconcile(
+        parentDom,
+        (instance.childInstances || {})[0],
+        childElement
+    );
+    instance.dom = childInstance.dom;
+    instance.childInstances = [childInstance];
+    instance.element = element;
+
+    return instance;
 }
 
 /**
@@ -130,7 +161,7 @@ function reconcileChildren(instance, element) {
  * @returns {DidactInstance}
  */
 function instantiate(element) {
-    const { type, props } = element;
+    const { type, props = {} } = element;
     const { children, ...domProps } = props;
 
     if (typeof type === 'string') {

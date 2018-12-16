@@ -12,11 +12,34 @@
 <body>
     <div id='mount'></div>
     <script>
+        class Toggler extends Component {
+            constructor(props) {
+                super(props);
+                this.state = { show: true };
+                this.toggle = this.toggle.bind(this);
+            }
+
+            toggle() {
+                this.setState(({ show }) => ({ show: !show }));
+            }
+
+            render() {
+                const { show } = this.state;
+
+                return createElement(
+                    'div',
+                    null,
+                    createElement('button', { onClick: this.toggle }, show ? 'Hide' : 'Show'),
+                    show && createElement('div', null, this.props.children[0])
+                )
+            }
+        }
+
         class Clock extends Component {
             constructor(props) {
                 super(props);
                 this.state = { counter: 0 };
-                setInterval(this.tick.bind(this), 1000);
+                this.timer = setInterval(this.tick.bind(this), 1000);
             }
 
             tick() {
@@ -25,6 +48,11 @@
 
             render() {
                 return createElement('div', {}, String(this.state.counter));
+            }
+
+            componentWillUnmount() {
+                console.log('unmounted');
+                clearInterval(this.timer);
             }
         }
 
@@ -43,8 +71,9 @@
                 "click me"
             ),
             createElement(
-                Clock,
-                {}
+                Toggler,
+                null,
+                createElement(Clock, null)
             )
         );
 
