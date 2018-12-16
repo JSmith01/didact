@@ -12,6 +12,22 @@
 <body>
     <div id='mount'></div>
     <script>
+        class Clock extends Component {
+            constructor(props) {
+                super(props);
+                this.state = { counter: 0 };
+                setInterval(this.tick.bind(this), 1000);
+            }
+
+            tick() {
+                this.setState(({ counter }) => ({ counter: counter + 1 }));
+            }
+
+            render() {
+                return createElement('div', {}, String(this.state.counter));
+            }
+        }
+
         const element = createElement(
             "div",
             { id: "container" },
@@ -25,6 +41,10 @@
                 "button",
                 { onClick: e => alert("Hi") },
                 "click me"
+            ),
+            createElement(
+                Clock,
+                {}
             )
         );
 

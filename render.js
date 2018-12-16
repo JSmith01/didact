@@ -3,7 +3,7 @@ const TEXT_ELEMENT = 'TEXT ELEMENT';
 /**
  * @typedef DidactElement
  * @type {object}
- * @property {*} type
+ * @property {string|function} type
  * @property {object} props
  */
 
@@ -13,6 +13,7 @@ const TEXT_ELEMENT = 'TEXT ELEMENT';
  * @property {HTMLElement} dom
  * @property {DidactElement} element
  * @property {DidactInstance[]} childInstances
+ * @property {object=} publicInstance
  */
 
 /**
@@ -73,9 +74,23 @@ function reconcile(parentDom, instance, element) {
     }
 
     if (instance.element.type === element.type) {
-        updateDomProps(instance.dom, instance.element.props, element.props);
-        instance.childInstances = reconcileChildren(instance, element);
-        instance.element = element;
+        if (typeof element.type === 'string') {
+            updateDomProps(instance.dom, instance.element.props, element.props);
+            instance.childInstances = reconcileChildren(instance, element);
+            instance.element = element;    
+        } else {
+            instance.publicInstance.props = element.props;
+            const childElement = instance.publicInstance.render();
+            const childInstance = reconcile(
+                parentDom, 
+                (instance.childInstances || {})[0], 
+                childElement
+            );
+            instance.dom = childInstance.dom;
+            instance.childInstances = [childInstance];
+            instance.element = element;
+        }
+
         return instance;
     } else {
         const newInstance = instantiate(element);
@@ -86,10 +101,10 @@ function reconcile(parentDom, instance, element) {
 
 /**
  * @param {DidactInstance} instance 
- * @param {DidactElement} children
+ * @param {DidactElement} element
  * @returns {DidactInstance[]}
  */
-function reconcileChildren(instance, children) {
+function reconcileChildren(instance, element) {
     const { dom, childInstances } = instance;
     const nextChildElements = element.props.children || [];
     const newChildInstances = [];
@@ -112,15 +127,34 @@ function instantiate(element) {
     const { type, props } = element;
     const { children, ...domProps } = props;
 
-    const dom = type === TEXT_ELEMENT 
-        ? document.createTextNode('') 
-        : document.createElement(type);
-    
-    updateDomProps(dom, {}, domProps);
-    const childInstances = (children || []).map(instantiate);
-    childInstances.forEach(({ dom: childDom }) => dom.appendChild(childDom));
+    if (typeof type === 'string') {
+        const dom = type === TEXT_ELEMENT 
+            ? document.createTextNode('') 
+            : document.createElement(type);
+        
+        updateDomProps(dom, {}, domProps);
+        const childInstances = (children || []).map(instantiate);
+        childInstances.forEach(({ dom: childDom }) => dom.appendChild(childDom));
 
-    return { dom, element, childInstances };
+        return { dom, element, childInstances };
+    } else {
+        const instance = {};
+        const publicInstance = createPublicInstance(element, instance);
+        const childElement = publicInstance.render();
+        const childInstance = instantiate(childElement);
+
+        Object.assign(
+            instance, 
+            {
+                dom: childInstance.dom,
+                element,
+                childInstances: [childInstance],
+                publicInstance
+            }
+        );
+        
+        return instance;
+    }
 }
 
 /**
@@ -148,7 +182,71 @@ function createElement(type, config, ...args) {
         type,
         props: {
             ...config,
-            children
+            children,
         }
     };
+}
+
+/**
+ * @typedef SetStateCallback
+ * @type {callback}
+ * @param {object} state
+ * @param {object} props
+ * @returns {object}
+ */
+
+class Component {
+    constructor(props) {
+        this.props = props;
+        this.state = this.state || {};
+    }
+
+    /**
+     * @param {object|SetStateCallback} partialState 
+     * @param {function=} callback
+     */
+    setState(partialState, callback) {
+        if (typeof partialState === 'function') {
+            this.state = { ...this.state, ...partialState(this.state, this.props) }
+        } else {
+            this.state = { ...this.state, ...partialState };
+        }
+
+        updateInstance(this.__internalInstance);
+
+        if (callback) {
+            callback();
+        }
+    }
+
+    /**
+     * @returns {DidactElement=}
+     */
+    render() {
+        throw new Error('Component render shall be defined');
+    }
+}
+
+/**
+ * @param {DidactElement} element 
+ * @param {DidactInstance} internalInstance
+ * @returns {object}
+ */
+function createPublicInstance(element, internalInstance) {
+    const { type, props } = element;
+    const publicInstance = new type(props);
+    publicInstance.__internalInstance = internalInstance;
+
+    return publicInstance;
+}
+
+/**
+ * @param {DidactInstance} instance 
+ */
+function updateInstance(instance) {
+    reconcile(
+        instance.dom.parentNode, 
+        instance, 
+        instance.element
+    );
 }
