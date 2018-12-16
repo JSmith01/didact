@@ -23,7 +23,10 @@ const TEXT_ELEMENT = 'TEXT ELEMENT';
  */
 function updateDomProps(dom, prevProps, nextProps) {
     for (const propName in prevProps) {
-        if (prevProps.hasOwnProperty(propName) && prevProps[propName] !== nextProps[propName]) {
+        if (
+            prevProps.hasOwnProperty(propName) &&
+            prevProps[propName] !== nextProps[propName]
+        ) {
             if (propName.startsWith('on')) {
                 const eventType = propName.toLowerCase().substring(2);
                 dom.removeEventListener(eventType, prevProps[propName]);
@@ -34,7 +37,10 @@ function updateDomProps(dom, prevProps, nextProps) {
     }
 
     for (const propName in nextProps) {
-        if (nextProps.hasOwnProperty(propName) && prevProps[propName] !== nextProps[propName]) {
+        if (
+            nextProps.hasOwnProperty(propName) &&
+            prevProps[propName] !== nextProps[propName]
+        ) {
             if (propName.startsWith('on')) {
                 const eventType = propName.toLowerCase().substring(2);
                 dom.addEventListener(eventType, nextProps[propName]);
@@ -48,17 +54,17 @@ function updateDomProps(dom, prevProps, nextProps) {
 let rootInstance = null;
 
 /**
- * @param {DidactElement} element 
- * @param {HTMLElement} container 
+ * @param {DidactElement} element
+ * @param {HTMLElement} container
  */
 function render(element, container) {
     rootInstance = reconcile(container, rootInstance, element);
 }
 
 /**
- * @param {HTMLElement} parentDom 
- * @param {DidactInstance=} instance 
- * @param {DidactElement} element 
+ * @param {HTMLElement} parentDom
+ * @param {DidactInstance=} instance
+ * @param {DidactElement} element
  * @returns {DidactInstance}
  */
 function reconcile(parentDom, instance, element) {
@@ -67,7 +73,7 @@ function reconcile(parentDom, instance, element) {
         parentDom.appendChild(newInstance.dom);
         return newInstance;
     }
-    
+
     if (element == null) {
         parentDom.removeChild(instance.dom);
         return null;
@@ -77,13 +83,13 @@ function reconcile(parentDom, instance, element) {
         if (typeof element.type === 'string') {
             updateDomProps(instance.dom, instance.element.props, element.props);
             instance.childInstances = reconcileChildren(instance, element);
-            instance.element = element;    
+            instance.element = element;
         } else {
             instance.publicInstance.props = element.props;
             const childElement = instance.publicInstance.render();
             const childInstance = reconcile(
-                parentDom, 
-                (instance.childInstances || {})[0], 
+                parentDom,
+                (instance.childInstances || {})[0],
                 childElement
             );
             instance.dom = childInstance.dom;
@@ -100,7 +106,7 @@ function reconcile(parentDom, instance, element) {
 }
 
 /**
- * @param {DidactInstance} instance 
+ * @param {DidactInstance} instance
  * @param {DidactElement} element
  * @returns {DidactInstance[]}
  */
@@ -120,7 +126,7 @@ function reconcileChildren(instance, element) {
 }
 
 /**
- * @param {DidactElement} element 
+ * @param {DidactElement} element
  * @returns {DidactInstance}
  */
 function instantiate(element) {
@@ -128,13 +134,16 @@ function instantiate(element) {
     const { children, ...domProps } = props;
 
     if (typeof type === 'string') {
-        const dom = type === TEXT_ELEMENT 
-            ? document.createTextNode('') 
-            : document.createElement(type);
-        
+        const dom =
+            type === TEXT_ELEMENT
+                ? document.createTextNode('')
+                : document.createElement(type);
+
         updateDomProps(dom, {}, domProps);
         const childInstances = (children || []).map(instantiate);
-        childInstances.forEach(({ dom: childDom }) => dom.appendChild(childDom));
+        childInstances.forEach(({ dom: childDom }) =>
+            dom.appendChild(childDom)
+        );
 
         return { dom, element, childInstances };
     } else {
@@ -143,23 +152,20 @@ function instantiate(element) {
         const childElement = publicInstance.render();
         const childInstance = instantiate(childElement);
 
-        Object.assign(
-            instance, 
-            {
-                dom: childInstance.dom,
-                element,
-                childInstances: [childInstance],
-                publicInstance
-            }
-        );
-        
+        Object.assign(instance, {
+            dom: childInstance.dom,
+            element,
+            childInstances: [childInstance],
+            publicInstance,
+        });
+
         return instance;
     }
 }
 
 /**
- * 
- * @param {string} value 
+ *
+ * @param {string} value
  * @returns {DidactElement}
  */
 function createTextElement(value) {
@@ -167,23 +173,23 @@ function createTextElement(value) {
 }
 
 /**
- * 
- * @param {string} type 
- * @param {object} config 
+ *
+ * @param {string} type
+ * @param {object} config
  * @param  {...any} children
- * @returns {DidactElement} 
+ * @returns {DidactElement}
  */
 function createElement(type, config, ...args) {
     const children = args
         .filter(c => c != null && c !== false)
-        .map(c => c instanceof Object ? c : createTextElement(c))
+        .map(c => (c instanceof Object ? c : createTextElement(c)));
 
     return {
         type,
         props: {
             ...config,
             children,
-        }
+        },
     };
 }
 
@@ -202,12 +208,15 @@ class Component {
     }
 
     /**
-     * @param {object|SetStateCallback} partialState 
+     * @param {object|SetStateCallback} partialState
      * @param {function=} callback
      */
     setState(partialState, callback) {
         if (typeof partialState === 'function') {
-            this.state = { ...this.state, ...partialState(this.state, this.props) }
+            this.state = {
+                ...this.state,
+                ...partialState(this.state, this.props),
+            };
         } else {
             this.state = { ...this.state, ...partialState };
         }
@@ -228,7 +237,7 @@ class Component {
 }
 
 /**
- * @param {DidactElement} element 
+ * @param {DidactElement} element
  * @param {DidactInstance} internalInstance
  * @returns {object}
  */
@@ -241,12 +250,8 @@ function createPublicInstance(element, internalInstance) {
 }
 
 /**
- * @param {DidactInstance} instance 
+ * @param {DidactInstance} instance
  */
 function updateInstance(instance) {
-    reconcile(
-        instance.dom.parentNode, 
-        instance, 
-        instance.element
-    );
+    reconcile(instance.dom.parentNode, instance, instance.element);
 }
