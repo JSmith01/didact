@@ -24,6 +24,7 @@ const TEXT_ELEMENT = 'TEXT ELEMENT';
 function updateDomProps(dom, prevProps, nextProps) {
     for (const propName in prevProps) {
         if (
+            propName !== 'children' &&
             prevProps.hasOwnProperty(propName) &&
             prevProps[propName] !== nextProps[propName]
         ) {
@@ -38,6 +39,7 @@ function updateDomProps(dom, prevProps, nextProps) {
 
     for (const propName in nextProps) {
         if (
+            propName !== 'children' &&
             nextProps.hasOwnProperty(propName) &&
             prevProps[propName] !== nextProps[propName]
         ) {
@@ -57,7 +59,7 @@ let rootInstance = null;
  * @param {DidactElement} element
  * @param {HTMLElement} container
  */
-function render(element, container) {
+export function render(element, container) {
     rootInstance = reconcile(container, rootInstance, element);
 }
 
@@ -210,7 +212,7 @@ function createTextElement(value) {
  * @param  {...any} children
  * @returns {DidactElement}
  */
-function createElement(type, config, ...args) {
+export function createElement(type, config, ...args) {
     const children = args
         .filter(c => c != null && c !== false)
         .map(c => (c instanceof Object ? c : createTextElement(c)));
@@ -232,7 +234,7 @@ function createElement(type, config, ...args) {
  * @returns {object}
  */
 
-class Component {
+export class Component {
     constructor(props) {
         this.props = props;
         this.state = this.state || {};
