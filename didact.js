@@ -288,3 +288,8 @@ function createPublicInstance(element, internalInstance) {
 function updateInstance(instance) {
     reconcile(instance.dom.parentNode, instance, instance.element);
 }
+
+export default {
+    createElement,
+    Component
+};
