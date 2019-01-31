@@ -16,7 +16,7 @@ class Toggler extends Component {
 
         return <div>
             <button onClick={this.toggle}>{show ? 'Hide' : 'Show'}</button>
-            <div>{this.props.children[0]}</div>
+            {show && <div>{this.props.children[0]}</div>}
         </div>;
     }
 }
