@@ -1,4 +1,4 @@
-import Didact, { Component } from '../didact.js';
+import Didact, { Component } from '../didact/index.js';
 import Toggler from './Toggler.js';
 import Clock from './Clock.js';
 

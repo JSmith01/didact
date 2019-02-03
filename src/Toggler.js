@@ -1,4 +1,4 @@
-import Didact, { Component } from '../didact.js';
+import Didact, { Component } from '../didact/index.js';
 
 class Toggler extends Component {
     constructor(props) {
