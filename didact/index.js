@@ -1,4 +1,5 @@
-const TEXT_ELEMENT = 'TEXT ELEMENT';
+import { createDomElement } from './dom-utils.js';
+import { TEXT_ELEMENT, HOST_COMPONENT } from './constants.js';
 
 /**
  * @typedef DidactElement
@@ -17,41 +18,19 @@ const TEXT_ELEMENT = 'TEXT ELEMENT';
  */
 
 /**
- * @param {HTMLElement} dom
- * @param {object} prevProps
- * @param {object} nextProps
+ * @typedef Fiber
+ * @type {object}
+ * @property {string} tag
+ * @property {string|function} type
+ * @property {Fiber} parent
+ * @property {Fiber} sibling
+ * @property {Fiber} alternate
+ * @property {HTMLElement} stateNode
+ * @property {object} props
+ * @property {object}
+ * @property effectTag
+ * @property {array} effects
  */
-function updateDomProps(dom, prevProps, nextProps) {
-    for (const propName in prevProps) {
-        if (
-            propName !== 'children' &&
-            prevProps.hasOwnProperty(propName) &&
-            prevProps[propName] !== nextProps[propName]
-        ) {
-            if (propName.startsWith('on')) {
-                const eventType = propName.toLowerCase().substring(2);
-                dom.removeEventListener(eventType, prevProps[propName]);
-            } else {
-                dom[propName] = null;
-            }
-        }
-    }
-
-    for (const propName in nextProps) {
-        if (
-            propName !== 'children' &&
-            nextProps.hasOwnProperty(propName) &&
-            prevProps[propName] !== nextProps[propName]
-        ) {
-            if (propName.startsWith('on')) {
-                const eventType = propName.toLowerCase().substring(2);
-                dom.addEventListener(eventType, nextProps[propName]);
-            } else {
-                dom[propName] = nextProps[propName];
-            }
-        }
-    }
-}
 
 let rootInstance = null;
 
@@ -167,12 +146,7 @@ function instantiate(element) {
     const { children, ...domProps } = props;
 
     if (typeof type === 'string') {
-        const dom =
-            type === TEXT_ELEMENT
-                ? document.createTextNode('')
-                : document.createElement(type);
-
-        updateDomProps(dom, {}, domProps);
+        const dom = createDomElement(element);
         const childInstances = (children || []).map(instantiate);
         childInstances.forEach(({ dom: childDom }) =>
             dom.appendChild(childDom)
